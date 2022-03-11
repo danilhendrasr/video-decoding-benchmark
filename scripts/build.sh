@@ -5,7 +5,11 @@
 export PATH_TO_FFMPEG=$(pwd)/ffmpeg_5.1_build
 
 # Now the build itself
-export INSTALL_PREFIX=$(pwd)/install
+virtualenv videc_benchmark_env
+source videc_benchmark_env/bin/activate
+pip install -r requirements.txt
+
+export CMAKE_INSTALL_PREFIX=$(pwd)/install
 mkdir -p install
 mkdir -p build
 cd build
@@ -14,6 +18,6 @@ cmake .. \
   -DFFMPEG_DIR:PATH="$PATH_TO_FFMPEG" \
   -DVIDEO_CODEC_SDK_DIR:PATH="$PATH_TO_SDK" \
   -DGENERATE_PYTHON_BINDINGS:BOOL="1" \
-  -DCMAKE_INSTALL_PREFIX:PATH="$INSTALL_PREFIX"
+  -DCMAKE_INSTALL_PREFIX:PATH="$CMAKE_INSTALL_PREFIX"
 
 make && make install
