@@ -1,0 +1,14 @@
+prefix=/home/azureuser/FFmpeg/build_x64_release_shared
+exec_prefix=${prefix}
+libdir=/home/azureuser/FFmpeg/build_x64_release_shared/lib
+includedir=/home/azureuser/FFmpeg/build_x64_release_shared/include
+
+Name: libavdevice
+Description: FFmpeg device handling library
+Version: 59.5.100
+Requires: 
+Requires.private: libavfilter >= 8.27.100, libswscale >= 6.5.100, libavformat >= 59.17.102, libavcodec >= 59.21.103, libswresample >= 4.4.100, libavutil >= 57.22.100
+Conflicts:
+Libs: -L${libdir}  -lavdevice 
+Libs.private: -lm -latomic -lxcb
+Cflags: -I${includedir}

@@ -1,7 +1,8 @@
 # Make sure you already set the PATH_TO_SDK, PATH_TO_FFMPEG, and CUDACXX environment variable
 # PATH_TO_SDK > path to NVIDIA Video Codec SDK
-# PATH_TO_FFMPEG > path to FFMPEG's build folder
 # CUDACXX > path to CUDA Toolkit's nvcc binary
+
+export PATH_TO_FFMPEG=$(pwd)/ffmpeg_5.1_build
 
 # Now the build itself
 export INSTALL_PREFIX=$(pwd)/install

@@ -1,0 +1,14 @@
+prefix=/home/azureuser/FFmpeg/build_x64_release_shared
+exec_prefix=${prefix}
+libdir=/home/azureuser/FFmpeg/build_x64_release_shared/lib
+includedir=/home/azureuser/FFmpeg/build_x64_release_shared/include
+
+Name: libavcodec
+Description: FFmpeg codec library
+Version: 59.21.103
+Requires: 
+Requires.private: libswresample >= 4.4.100, libavutil >= 57.22.100
+Conflicts:
+Libs: -L${libdir}  -lavcodec 
+Libs.private: -pthread -lm -latomic -lz
+Cflags: -I${includedir}

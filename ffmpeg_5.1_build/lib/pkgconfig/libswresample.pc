@@ -1,0 +1,14 @@
+prefix=/home/azureuser/FFmpeg/build_x64_release_shared
+exec_prefix=${prefix}
+libdir=/home/azureuser/FFmpeg/build_x64_release_shared/lib
+includedir=/home/azureuser/FFmpeg/build_x64_release_shared/include
+
+Name: libswresample
+Description: FFmpeg audio resampling library
+Version: 4.4.100
+Requires: 
+Requires.private: libavutil >= 57.22.100
+Conflicts:
+Libs: -L${libdir}  -lswresample 
+Libs.private: -lm -latomic
+Cflags: -I${includedir}

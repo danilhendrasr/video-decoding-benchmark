@@ -1,0 +1,14 @@
+prefix=/home/azureuser/FFmpeg/build_x64_release_shared
+exec_prefix=${prefix}
+libdir=/home/azureuser/FFmpeg/build_x64_release_shared/lib
+includedir=/home/azureuser/FFmpeg/build_x64_release_shared/include
+
+Name: libavutil
+Description: FFmpeg utility library
+Version: 57.22.100
+Requires: 
+Requires.private: 
+Conflicts:
+Libs: -L${libdir}  -lavutil 
+Libs.private: -pthread -lm -latomic -ldl
+Cflags: -I${includedir}
