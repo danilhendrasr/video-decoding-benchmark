@@ -2,7 +2,6 @@ import time
 import av
 import sys
 from nvdecoder import NvDecoder
-from tabulate import tabulate
 from tqdm import tqdm
 import cv2
 import psutil
