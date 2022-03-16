@@ -50,22 +50,26 @@ def measure_decode_with_pyav(file_to_decode: str, current_iteration: int) -> Ite
             continue
 
         gpu = gpustat.core.GPUStatCollection.new_query()
+        gpu_processes = filter(lambda x: process_name.match(
+            x['command']), gpu[0].processes)
         start_counter = time.perf_counter()
         packet.decode()
         end_counter = time.perf_counter()
 
         processing_time = s_to_ms(end_counter - start_counter)
-        cpu_util = psutil_handle.cpu_percent()
+        cpu_util = psutil.cpu_percent()
         mem_util = utils.b_to_mb(psutil_handle.memory_info().rss)
         gpu_util = gpu[0].utilization
         gpu_mem_util = gpu[0].memory_used
         # gpu_util = nvidia_smi.nvmlDeviceGetUtilizationRates(gpu_handle)
 
+        for process in gpu_processes:
+            gpu_mem_util_record.append(process["gpu_memory_usage"])
+
         frame_decode_record.append(processing_time)
         cpu_util_record.append(cpu_util)
         mem_util_record.append(mem_util)
         gpu_util_record.append(gpu_util)
-        gpu_mem_util_record.append(gpu_mem_util)
 
     plot_list_to_image(
         cpu_util_record, 'benchmark-results/plot/cpu/pyav-cpu-{}.png'.format(current_iteration))
@@ -98,6 +102,8 @@ def measure_decode_with_opencv(file_to_decode: str, current_iteration: int) -> I
     video = cv2.VideoCapture(file_to_decode)
     while video.isOpened():
         gpu = gpustat.core.GPUStatCollection.new_query()
+        gpu_processes = filter(lambda x: process_name.match(
+            x['command']), gpu[0].processes)
 
         start_counter = time.perf_counter()
         ret, _ = video.read()
@@ -106,17 +112,19 @@ def measure_decode_with_opencv(file_to_decode: str, current_iteration: int) -> I
         end_counter = time.perf_counter()
 
         processing_time = s_to_ms(end_counter - start_counter)
-        cpu_util = psutil_handle.cpu_percent()
+        cpu_util = psutil.cpu_percent()
         mem_util = utils.b_to_mb(psutil_handle.memory_info().rss)
         gpu_util = gpu[0].utilization
         gpu_mem_util = gpu[0].memory_used
         # gpu_util = nvidia_smi.nvmlDeviceGetUtilizationRates(gpu_handle)
 
+        for process in gpu_processes:
+            gpu_mem_util_record.append(process["gpu_memory_usage"])
+
         frame_decode_record.append(processing_time)
         cpu_util_record.append(cpu_util)
         mem_util_record.append(mem_util)
         gpu_util_record.append(gpu_util)
-        gpu_mem_util_record.append(gpu_mem_util)
 
     video.release()
 
@@ -169,7 +177,7 @@ if __name__ == "__main__":
 
             t.set_description("Warmup finished")
 
-    time.sleep(5)
+    time.sleep(10)
 
     print("Running benchmark...")
 
@@ -177,13 +185,13 @@ if __name__ == "__main__":
         gpu_id, file_to_decode, nth_iteration)
     store_benchmark_summary(nvcuvid_result, nvdec_benchmark_results)
 
-    time.sleep(3)
+    time.sleep(10)
 
     pyav_result = measure_decode_with_pyav(
         file_to_decode, nth_iteration)
     store_benchmark_summary(pyav_result, pyav_benchmark_results)
 
-    time.sleep(3)
+    time.sleep(10)
 
     opencv_result = measure_decode_with_opencv(
         file_to_decode, nth_iteration)
@@ -195,7 +203,7 @@ if __name__ == "__main__":
             ["PyAV", *pyav_benchmark_results.summarize_fpt()],
             ["OpenCV", *opencv_benchmark_results.summarize_fpt()]
         ],
-        "CPU Utilization (%)": [
+        "CPU Utilization Across All Cores (%)": [
             ["NVDEC", *nvdec_benchmark_results.summarize_cpu_utils()],
             ["PyAV", *pyav_benchmark_results.summarize_cpu_utils()],
             ["OpenCV", *opencv_benchmark_results.summarize_cpu_utils()]
