@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 from typing import TypedDict
+from statistics import median, stdev
+from numpy import percentile
 import matplotlib
 matplotlib.use("Agg")
-
-ListSummary = "tuple[float, float, float]"
 
 
 class SummaryObject(TypedDict):
@@ -13,69 +13,80 @@ class SummaryObject(TypedDict):
 
 
 class IterationResult(TypedDict):
-    processing_time: SummaryObject
-    cpu: SummaryObject
-    mem: SummaryObject
-    gpu: SummaryObject
-    gpu_mem: SummaryObject
+    processing_time: "list[float]"
+    cpu: "list[float]"
+    mem: "list[float]"
+    gpu: "list[float]"
+    gpu_mem: "list[float]"
 
 
 class BenchmarkResult:
     def __init__(self) -> None:
-        self.avg_fpt = []
-        self.min_fpt = []
-        self.max_fpt = []
-
-        self.avg_cpu_utils = []
-        self.min_cpu_utils = []
-        self.max_cpu_utils = []
-
-        self.avg_mem_utils = []
-        self.min_mem_utils = []
-        self.max_mem_utils = []
-
-        self.avg_gpu_utils = []
-        self.min_gpu_utils = []
-        self.max_gpu_utils = []
-
-        self.avg_gpu_mem_utils = []
-        self.min_gpu_mem_utils = []
-        self.max_gpu_mem_utils = []
+        self.frame_processing_times = []
+        self.cpu_utils = []
+        self.mem_utils = []
+        self.gpu_utils = []
+        self.gpu_mem_utils = []
 
     def summarize_fpt(self) -> "tuple[float, float, float]":
-        average = round(avg(self.avg_fpt), 2)
-        minimum = round(min(self.min_fpt), 2)
-        maximum = round(max(self.max_fpt), 2)
+        self.frame_processing_times.sort()
+        average = round(avg(self.frame_processing_times), 2)
+        minimum = round(min(self.frame_processing_times), 2)
+        maximum = round(max(self.frame_processing_times), 2)
+        q1_percentile = round(percentile(self.frame_processing_times, 25), 2)
+        q2_percentile = round(percentile(self.frame_processing_times, 50), 2)
+        q3_percentile = round(percentile(self.frame_processing_times, 75), 2)
+        std_deviation = round(stdev(self.frame_processing_times), 2)
 
-        return (average, minimum, maximum)
+        return (average, minimum, maximum, q1_percentile, q2_percentile, q3_percentile, std_deviation)
 
     def summarize_cpu_utils(self) -> "tuple[float, float, float]":
-        average = round(avg(self.avg_cpu_utils), 2)
-        minimum = round(min(self.min_cpu_utils), 2)
-        maximum = round(max(self.max_cpu_utils), 2)
+        self.cpu_utils.sort()
+        average = round(avg(self.cpu_utils), 2)
+        minimum = round(min(self.cpu_utils), 2)
+        maximum = round(max(self.cpu_utils), 2)
+        q1_percentile = round(percentile(self.cpu_utils, 25), 2)
+        q2_percentile = round(percentile(self.cpu_utils, 50), 2)
+        q3_percentile = round(percentile(self.cpu_utils, 75), 2)
+        std_deviation = round(stdev(self.cpu_utils), 2)
 
-        return (average, minimum, maximum)
+        return (average, minimum, maximum, q1_percentile, q2_percentile, q3_percentile, std_deviation)
 
     def summarize_mem_utils(self) -> "tuple[float, float, float]":
-        average = round(avg(self.avg_mem_utils), 2)
-        minimum = round(min(self.min_mem_utils), 2)
-        maximum = round(max(self.max_mem_utils), 2)
+        self.mem_utils.sort()
+        average = round(avg(self.mem_utils), 2)
+        minimum = round(min(self.mem_utils), 2)
+        maximum = round(max(self.mem_utils), 2)
+        q1_percentile = round(percentile(self.mem_utils, 25), 2)
+        q2_percentile = round(percentile(self.mem_utils, 50), 2)
+        q3_percentile = round(percentile(self.mem_utils, 75), 2)
+        std_deviation = round(stdev(self.mem_utils), 2)
 
-        return (average, minimum, maximum)
+        return (average, minimum, maximum, q1_percentile, q2_percentile, q3_percentile, std_deviation)
 
     def summarize_gpu_utils(self) -> "tuple[float, float, float]":
-        average = round(avg(self.avg_gpu_utils), 2)
-        minimum = round(min(self.min_gpu_utils), 2)
-        maximum = round(max(self.max_gpu_utils), 2)
+        self.gpu_utils.sort()
+        average = round(avg(self.gpu_utils), 2)
+        minimum = round(min(self.gpu_utils), 2)
+        maximum = round(max(self.gpu_utils), 2)
+        q1_percentile = round(percentile(self.gpu_utils, 25), 2)
+        q2_percentile = round(percentile(self.gpu_utils, 50), 2)
+        q3_percentile = round(percentile(self.gpu_utils, 75), 2)
+        std_deviation = round(stdev(self.gpu_utils), 2)
 
-        return (average, minimum, maximum)
+        return (average, minimum, maximum, q1_percentile, q2_percentile, q3_percentile, std_deviation)
 
     def summarize_gpu_mem_utils(self) -> "tuple[float, float, float]":
-        average = round(avg(self.avg_gpu_mem_utils), 2)
-        minimum = round(min(self.min_gpu_mem_utils), 2)
-        maximum = round(max(self.max_gpu_mem_utils), 2)
+        self.gpu_mem_utils.sort()
+        average = round(avg(self.gpu_mem_utils), 2)
+        minimum = round(min(self.gpu_mem_utils), 2)
+        maximum = round(max(self.gpu_mem_utils), 2)
+        q1_percentile = round(percentile(self.gpu_mem_utils, 25), 2)
+        q2_percentile = round(percentile(self.gpu_mem_utils, 50), 2)
+        q3_percentile = round(percentile(self.gpu_mem_utils, 75), 2)
+        std_deviation = round(stdev(self.gpu_mem_utils), 2)
 
-        return (average, minimum, maximum)
+        return (average, minimum, maximum, q1_percentile, q2_percentile, q3_percentile, std_deviation)
 
 
 def plot_list_to_image(list: list, path: str):
@@ -105,22 +116,8 @@ def b_to_mb(b: int):
 
 
 def store_benchmark_summary(iteration_result: IterationResult, storage: BenchmarkResult):
-    storage.avg_fpt.append(iteration_result["processing_time"]["avg"])
-    storage.min_fpt.append(iteration_result["processing_time"]["min"])
-    storage.max_fpt.append(iteration_result["processing_time"]["max"])
-
-    storage.avg_cpu_utils.append(iteration_result["cpu"]["avg"])
-    storage.min_cpu_utils.append(iteration_result["cpu"]["min"])
-    storage.max_cpu_utils.append(iteration_result["cpu"]["max"])
-
-    storage.avg_mem_utils.append(iteration_result["mem"]["avg"])
-    storage.min_mem_utils.append(iteration_result["mem"]["min"])
-    storage.max_mem_utils.append(iteration_result["mem"]["max"])
-
-    storage.avg_gpu_utils.append(iteration_result["gpu"]["avg"])
-    storage.min_gpu_utils.append(iteration_result["gpu"]["min"])
-    storage.max_gpu_utils.append(iteration_result["gpu"]["max"])
-
-    storage.avg_gpu_mem_utils.append(iteration_result["gpu_mem"]["avg"])
-    storage.min_gpu_mem_utils.append(iteration_result["gpu_mem"]["min"])
-    storage.max_gpu_mem_utils.append(iteration_result["gpu_mem"]["max"])
+    storage.frame_processing_times = iteration_result["processing_time"]
+    storage.cpu_utils = iteration_result["cpu"]
+    storage.mem_utils = iteration_result["mem"]
+    storage.gpu_utils = iteration_result["gpu"]
+    storage.gpu_mem_utils = iteration_result["gpu_mem"]

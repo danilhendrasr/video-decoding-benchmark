@@ -1,3 +1,4 @@
+import re
 import time
 import av
 import sys
@@ -6,14 +7,21 @@ from tqdm import tqdm
 import cv2
 import psutil
 import nvidia_smi
-from utils import s_to_ms, plot_list_to_image, list_summary, avg, store_benchmark_summary, BenchmarkResult, IterationResult
+import gpustat
+from utils import s_to_ms, plot_list_to_image, store_benchmark_summary, BenchmarkResult, IterationResult
 import utils
-from prettytable import PrettyTable
+import os
+import setproctitle
 
 nvidia_smi.nvmlInit()
 
+PROCESS_NAME = "videc-benchmark"
+PROCESS_PID = 0
 
-def measure_decode_with_nvcuvid(gpu_id: int, file_to_decode: str, current_iteration: int) -> IterationResult:
+setproctitle.setproctitle(PROCESS_NAME)
+
+
+def measure_decode_with_nvdec(gpu_id: int, file_to_decode: str, current_iteration: int) -> IterationResult:
     dec = NvDecoder(gpu_id, file_to_decode)
     decode_result = dec.decode(
         dump_frames=False, current_iteration=current_iteration)
@@ -27,63 +35,47 @@ def measure_decode_with_pyav(file_to_decode: str, current_iteration: int) -> Ite
     gpu_util_record = []
     gpu_mem_util_record = []
 
-    gpu_handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
+    process_name = re.compile(PROCESS_NAME)
+    for p in psutil.process_iter(['pid', 'name', 'memory_info']):
+        if not process_name.match(p.name()):
+            continue
+        PROCESS_PID = p.pid
+
+    # gpu_handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
+    psutil_handle = psutil.Process(PROCESS_PID)
 
     av_input = av.open(file_to_decode)
     for packet in av_input.demux():
         if packet.size == 0:
             continue
 
+        gpu = gpustat.core.GPUStatCollection.new_query()
         start_counter = time.perf_counter()
         packet.decode()
         end_counter = time.perf_counter()
 
         processing_time = s_to_ms(end_counter - start_counter)
-        cpu_util = psutil.cpu_percent()
-        mem_util = utils.b_to_mb(psutil.virtual_memory().used)
-        gpu_util = nvidia_smi.nvmlDeviceGetUtilizationRates(gpu_handle)
+        cpu_util = psutil_handle.cpu_percent()
+        mem_util = utils.b_to_mb(psutil_handle.memory_info().rss)
+        gpu_util = gpu[0].utilization
+        gpu_mem_util = gpu[0].memory_used
+        # gpu_util = nvidia_smi.nvmlDeviceGetUtilizationRates(gpu_handle)
 
         frame_decode_record.append(processing_time)
         cpu_util_record.append(cpu_util)
         mem_util_record.append(mem_util)
-        gpu_util_record.append(gpu_util.gpu)
-        gpu_mem_util_record.append(gpu_util.memory)
+        gpu_util_record.append(gpu_util)
+        gpu_mem_util_record.append(gpu_mem_util)
 
     plot_list_to_image(
         cpu_util_record, 'benchmark-results/plot/cpu/pyav-cpu-{}.png'.format(current_iteration))
 
-    processing_time_summary = list_summary(frame_decode_record)
-    cpu_util_summary = list_summary(cpu_util_record)
-    mem_util_summary = list_summary(mem_util_record)
-    gpu_util_summary = list_summary(gpu_util_record)
-    gpu_mem_util_summary = list_summary(gpu_mem_util_record)
-
     return {
-        "processing_time": {
-            "avg": processing_time_summary[0],
-            "min": processing_time_summary[1],
-            "max": processing_time_summary[2],
-        },
-        "cpu": {
-            "avg": cpu_util_summary[0],
-            "min": cpu_util_summary[1],
-            "max": cpu_util_summary[2],
-        },
-        "mem": {
-            "avg": mem_util_summary[0],
-            "min": mem_util_summary[1],
-            "max": mem_util_summary[2],
-        },
-        "gpu": {
-            "avg": gpu_util_summary[0],
-            "min": gpu_util_summary[1],
-            "max": gpu_util_summary[2],
-        },
-        "gpu_mem": {
-            "avg": gpu_mem_util_summary[0],
-            "min": gpu_mem_util_summary[1],
-            "max": gpu_mem_util_summary[2],
-        }
+        "processing_time": frame_decode_record,
+        "cpu": cpu_util_record,
+        "mem": mem_util_record,
+        "gpu": gpu_util_record,
+        "gpu_mem": gpu_mem_util_record
     }
 
 
@@ -94,10 +86,19 @@ def measure_decode_with_opencv(file_to_decode: str, current_iteration: int) -> I
     gpu_util_record = []
     gpu_mem_util_record = []
 
-    gpu_handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
+    process_name = re.compile(PROCESS_NAME)
+    for p in psutil.process_iter(['pid', 'name', 'memory_info']):
+        if not process_name.match(p.name()):
+            continue
+        PROCESS_PID = p.pid
+
+    # gpu_handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
+    psutil_handle = psutil.Process(PROCESS_PID)
 
     video = cv2.VideoCapture(file_to_decode)
     while video.isOpened():
+        gpu = gpustat.core.GPUStatCollection.new_query()
+
         start_counter = time.perf_counter()
         ret, _ = video.read()
         if not ret:
@@ -105,53 +106,29 @@ def measure_decode_with_opencv(file_to_decode: str, current_iteration: int) -> I
         end_counter = time.perf_counter()
 
         processing_time = s_to_ms(end_counter - start_counter)
-        cpu_util = psutil.cpu_percent()
-        mem_util = utils.b_to_mb(psutil.virtual_memory().used)
-        gpu_util = nvidia_smi.nvmlDeviceGetUtilizationRates(gpu_handle)
+        cpu_util = psutil_handle.cpu_percent()
+        mem_util = utils.b_to_mb(psutil_handle.memory_info().rss)
+        gpu_util = gpu[0].utilization
+        gpu_mem_util = gpu[0].memory_used
+        # gpu_util = nvidia_smi.nvmlDeviceGetUtilizationRates(gpu_handle)
 
         frame_decode_record.append(processing_time)
         cpu_util_record.append(cpu_util)
         mem_util_record.append(mem_util)
-        gpu_util_record.append(gpu_util.gpu)
-        gpu_mem_util_record.append(gpu_util.memory)
+        gpu_util_record.append(gpu_util)
+        gpu_mem_util_record.append(gpu_mem_util)
 
     video.release()
 
     plot_list_to_image(
         cpu_util_record, 'benchmark-results/plot/cpu/opencv-cpu-{}.png'.format(current_iteration))
 
-    processing_time_summary = list_summary(frame_decode_record)
-    cpu_util_summary = list_summary(cpu_util_record)
-    mem_util_summary = list_summary(mem_util_record)
-    gpu_util_summary = list_summary(gpu_util_record)
-    gpu_mem_util_summary = list_summary(gpu_mem_util_record)
-
     return {
-        "processing_time": {
-            "avg": processing_time_summary[0],
-            "min": processing_time_summary[1],
-            "max": processing_time_summary[2],
-        },
-        "cpu": {
-            "avg": cpu_util_summary[0],
-            "min": cpu_util_summary[1],
-            "max": cpu_util_summary[2],
-        },
-        "mem": {
-            "avg": mem_util_summary[0],
-            "min": mem_util_summary[1],
-            "max": mem_util_summary[2],
-        },
-        "gpu": {
-            "avg": gpu_util_summary[0],
-            "min": gpu_util_summary[1],
-            "max": gpu_util_summary[2],
-        },
-        "gpu_mem": {
-            "avg": gpu_mem_util_summary[0],
-            "min": gpu_mem_util_summary[1],
-            "max": gpu_mem_util_summary[2],
-        }
+        "processing_time": frame_decode_record,
+        "cpu": cpu_util_record,
+        "mem": mem_util_record,
+        "gpu": gpu_util_record,
+        "gpu_mem": gpu_mem_util_record
     }
 
 
@@ -166,164 +143,119 @@ if __name__ == "__main__":
 
     gpu_id = int(sys.argv[1])
     file_to_decode = sys.argv[2]
-    iteration_count = 1
+    warmup_iteration = 1
 
-    nvcuvid_benchmark_results = BenchmarkResult()
+    nvdec_benchmark_results = BenchmarkResult()
     pyav_benchmark_results = BenchmarkResult()
     opencv_benchmark_results = BenchmarkResult()
 
-    print("Running benchmark...")
-    with tqdm(range(iteration_count)) as t:
+    print("Running warmup...")
+    with tqdm(range(warmup_iteration)) as t:
         for i in t:
             nth_iteration = i + 1
-            tqdm.write(
-                "---- Iteration {}/{} ----".format(i+1, iteration_count))
+            tqdm.write("--- Iteration {}/{} ---".format(i+1, warmup_iteration))
 
-            t.set_description("Running NVCUVID")
-            nvcuvid_result = measure_decode_with_nvcuvid(
-                gpu_id, file_to_decode, nth_iteration)
-
-            store_benchmark_summary(
-                nvcuvid_result, nvcuvid_benchmark_results)
-            t.set_description("NVCUVID finished")
-
-            time.sleep(10)
+            t.set_description("Running NVDEC")
+            measure_decode_with_nvdec(gpu_id, file_to_decode, nth_iteration)
+            t.set_description("NVDEC finished")
 
             t.set_description("Running PyAV")
-            pyav_result = measure_decode_with_pyav(
-                file_to_decode, nth_iteration)
-
-            store_benchmark_summary(
-                pyav_result, pyav_benchmark_results)
+            measure_decode_with_pyav(file_to_decode, nth_iteration)
             t.set_description("PyAV finished")
 
-            time.sleep(10)
-
             t.set_description("Running OpenCV")
-            opencv_result = measure_decode_with_opencv(
-                file_to_decode, nth_iteration)
-
-            store_benchmark_summary(
-                opencv_result, opencv_benchmark_results)
+            measure_decode_with_opencv(file_to_decode, nth_iteration)
             t.set_description("OpenCV finished")
 
-            t.set_description("Finished benchmarking")
+            t.set_description("Warmup finished")
 
-    fpt_result_table = [
-        [
-            "NVCUVID",
-            *nvcuvid_benchmark_results.summarize_fpt(),
+    time.sleep(5)
+
+    print("Running benchmark...")
+
+    nvcuvid_result = measure_decode_with_nvdec(
+        gpu_id, file_to_decode, nth_iteration)
+    store_benchmark_summary(nvcuvid_result, nvdec_benchmark_results)
+
+    time.sleep(3)
+
+    pyav_result = measure_decode_with_pyav(
+        file_to_decode, nth_iteration)
+    store_benchmark_summary(pyav_result, pyav_benchmark_results)
+
+    time.sleep(3)
+
+    opencv_result = measure_decode_with_opencv(
+        file_to_decode, nth_iteration)
+    store_benchmark_summary(opencv_result, opencv_benchmark_results)
+
+    results_table = {
+        "Frame Processing Time (ms)": [
+            ["NVDEC", *nvdec_benchmark_results.summarize_fpt()],
+            ["PyAV", *pyav_benchmark_results.summarize_fpt()],
+            ["OpenCV", *opencv_benchmark_results.summarize_fpt()]
         ],
-        [
-            "PyAV",
-            *pyav_benchmark_results.summarize_fpt(),
+        "CPU Utilization (%)": [
+            ["NVDEC", *nvdec_benchmark_results.summarize_cpu_utils()],
+            ["PyAV", *pyav_benchmark_results.summarize_cpu_utils()],
+            ["OpenCV", *opencv_benchmark_results.summarize_cpu_utils()]
         ],
-        [
-            "OpenCV",
-            *opencv_benchmark_results.summarize_fpt(),
-        ]
-    ]
-
-    cpu_utils_result_table = [
-        [
-            "NVCUVID",
-            *nvcuvid_benchmark_results.summarize_cpu_utils(),
+        "Memory Utilization (MB)": [
+            ["NVDEC", *nvdec_benchmark_results.summarize_mem_utils()],
+            ["PyAV", *pyav_benchmark_results.summarize_mem_utils()],
+            ["OpenCV", *opencv_benchmark_results.summarize_mem_utils()]
         ],
-        [
-            "PyAV",
-            *pyav_benchmark_results.summarize_cpu_utils(),
+        "GPU Utilization (%)": [
+            ["NVDEC", *nvdec_benchmark_results.summarize_gpu_utils()],
+            ["PyAV", *pyav_benchmark_results.summarize_gpu_utils()],
+            ["OpenCV", *opencv_benchmark_results.summarize_gpu_utils()]
         ],
-        [
-            "OpenCV",
-            *opencv_benchmark_results.summarize_cpu_utils(),
-        ]
-    ]
-
-    mem_utils_result_table = [
-        [
-            "NVCUVID",
-            *nvcuvid_benchmark_results.summarize_mem_utils(),
+        "GPU Memory Utilization (MB)": [
+            ["NVDEC", *nvdec_benchmark_results.summarize_gpu_mem_utils()],
+            ["PyAV", *pyav_benchmark_results.summarize_gpu_mem_utils()],
+            ["OpenCV", *opencv_benchmark_results.summarize_gpu_mem_utils()]
         ],
-        [
-            "PyAV",
-            *pyav_benchmark_results.summarize_mem_utils(),
-        ],
-        [
-            "OpenCV",
-            *opencv_benchmark_results.summarize_mem_utils(),
-        ]
-    ]
+    }
 
-    gpu_utils_result_table = [
-        [
-            "NVCUVID",
-            *nvcuvid_benchmark_results.summarize_gpu_utils(),
-        ],
-        [
-            "PyAV",
-            *pyav_benchmark_results.summarize_gpu_utils(),
-        ],
-        [
-            "OpenCV",
-            *opencv_benchmark_results.summarize_gpu_utils(),
-        ]
-    ]
+    result_markdown_path = '{}/benchmark-results/results.md'.format(
+        os.getcwd())
+    result_md = open(result_markdown_path, 'w')
 
-    gpu_mem_utils_result_table = [
-        [
-            "NVCUVID",
-            *nvcuvid_benchmark_results.summarize_gpu_mem_utils(),
-        ],
-        [
-            "PyAV",
-            *pyav_benchmark_results.summarize_gpu_mem_utils(),
-        ],
-        [
-            "OpenCV",
-            *opencv_benchmark_results.summarize_gpu_mem_utils(),
-        ]
-    ]
+    result_md.write("<table>")
+    result_md.write("""
+    <tr>
+        <th colspan="8">Benchmark Results</th>
+    </tr>""")
+    for key, value in results_table.items():
+        result_md.write("""
+    <tr>
+        <td colspan="8"><strong>{}</strong></td>
+    </tr>
+    <tr>
+        <td>Tool</td>
+        <td>Mean</td>
+        <td>Min</td>
+        <td>Max</td>
+        <td>Q1</td>
+        <td>Q2</td>
+        <td>Q3</td>
+        <td>Standard Deviation</td>
+    </tr>""".format(key))
+        for row in value:
+            result_md.write("""
+    <tr>
+        <td>{}</td>
+        <td>{}</td>
+        <td>{}</td>
+        <td>{}</td>
+        <td>{}</td>
+        <td>{}</td>
+        <td>{}</td>
+        <td>{}</td>
+    </tr>""".format(*row))
 
-    print("\n---- Benchmark Result ----")
+    result_md.write("\n</table>\n")
 
-    print("Case      : Measure time to decode each frame in %s" %
-          file_to_decode)
-    print("Iteration : %d" % iteration_count)
-
-    fpt_table = PrettyTable()
-    fpt_table.title = "Frame Processing Time (in milliseconds)"
-    fpt_table.field_names = ["Tool", "Mean (ms)", "Min (ms)", "Max (ms)"]
-    for i in fpt_result_table:
-        fpt_table.add_row(i)
-    print(fpt_table)
-
-    cpu_utils_table = PrettyTable()
-    cpu_utils_table.title = "CPU Utilization Across All Cores (in percent)"
-    cpu_utils_table.field_names = ["Tool", "Mean (%)", "Min (%)", "Max (%)"]
-    for i in cpu_utils_result_table:
-        cpu_utils_table.add_row(i)
-    print(cpu_utils_table)
-
-    mem_utils_table = PrettyTable()
-    mem_utils_table.title = "Memory Utilization (in MB)"
-    mem_utils_table.field_names = ["Tool", "Mean (MB)", "Min (MB)", "Max (MB)"]
-    for i in mem_utils_result_table:
-        mem_utils_table.add_row(i)
-    print(mem_utils_table)
-
-    gpu_utils_table = PrettyTable()
-    gpu_utils_table.title = "GPU Utilization (in percent)"
-    gpu_utils_table.field_names = ["Tool", "Mean (%)", "Min (%)", "Max (%)"]
-    for i in gpu_utils_result_table:
-        gpu_utils_table.add_row(i)
-    print(gpu_utils_table)
-
-    gpu_mem_utils_table = PrettyTable()
-    gpu_mem_utils_table.title = "GPU Memory Utilization (in percent)"
-    gpu_mem_utils_table.field_names = [
-        "Tool", "Mean (%)", "Min (%)", "Max (%)"]
-    for i in gpu_mem_utils_result_table:
-        gpu_mem_utils_table.add_row(i)
-    print(gpu_mem_utils_table)
+    print("Benchmark result written to: {}".format(result_markdown_path))
 
     exit(0)

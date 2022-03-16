@@ -3,9 +3,9 @@ import PyNvCodec as nvc
 from enum import Enum
 import numpy as np
 import time
-import nvidia_smi
 import utils
 from utils import IterationResult
+import gpustat
 
 
 class DecodeStatus(Enum):
@@ -104,11 +104,12 @@ class NvDecoder:
         gpu_util_record = []
         gpu_mem_util_record = []
 
-        gpu_handle = nvidia_smi.nvmlDeviceGetHandleByIndex(self.gpu_id)
+        # gpu_handle = nvidia_smi.nvmlDeviceGetHandleByIndex(self.gpu_id)
 
         frame_count = 0
         # Main decoding cycle
         while (self.dec_frames() < frames_to_decode) if (frames_to_decode > 0) else True:
+            gpu = gpustat.core.GPUStatCollection.new_query()
             start_counter = time.perf_counter()
             status = self.decode_frame(verbose)
             if status == DecodeStatus.DEC_ERR:
@@ -120,47 +121,23 @@ class NvDecoder:
             processing_time = utils.s_to_ms(end_counter - start_counter)
             cpu_util = psutil.cpu_percent()
             mem_util = utils.b_to_mb(psutil.virtual_memory().used)
-            gpu_util = nvidia_smi.nvmlDeviceGetUtilizationRates(gpu_handle)
+            # gpu_util = nvidia_smi.nvmlDeviceGetUtilizationRates(gpu_handle)
+            gpu_util = gpu[0].utilization
+            gpu_mem_util = gpu[0].memory_used
 
             frame_decode_record.append(processing_time)
             cpu_util_record.append(cpu_util)
             mem_util_record.append(mem_util)
-            gpu_util_record.append(gpu_util.gpu)
-            gpu_mem_util_record.append(gpu_util.memory)
+            gpu_util_record.append(gpu_util)
+            gpu_mem_util_record.append(gpu_mem_util)
 
         utils.plot_list_to_image(
             cpu_util_record, 'benchmark-results/plot/cpu/nvcuvid-cpu-{}.png'.format(current_iteration))
 
-        processing_time_summary = utils.list_summary(frame_decode_record)
-        cpu_util_summary = utils.list_summary(cpu_util_record)
-        mem_util_summary = utils.list_summary(mem_util_record)
-        gpu_util_summary = utils.list_summary(gpu_util_record)
-        gpu_mem_util_summary = utils.list_summary(gpu_mem_util_record)
-
         return {
-            "processing_time": {
-                "avg": processing_time_summary[0],
-                "min": processing_time_summary[1],
-                "max": processing_time_summary[2],
-            },
-            "cpu": {
-                "avg": cpu_util_summary[0],
-                "min": cpu_util_summary[1],
-                "max": cpu_util_summary[2],
-            },
-            "mem": {
-                "avg": mem_util_summary[0],
-                "min": mem_util_summary[1],
-                "max": mem_util_summary[2],
-            },
-            "gpu": {
-                "avg": gpu_util_summary[0],
-                "min": gpu_util_summary[1],
-                "max": gpu_util_summary[2],
-            },
-            "gpu_mem": {
-                "avg": gpu_mem_util_summary[0],
-                "min": gpu_mem_util_summary[1],
-                "max": gpu_mem_util_summary[2],
-            }
+            "processing_time": frame_decode_record,
+            "cpu": cpu_util_record,
+            "mem": mem_util_record,
+            "gpu": gpu_util_record,
+            "gpu_mem": gpu_mem_util_record
         }
