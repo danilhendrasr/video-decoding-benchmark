@@ -5,7 +5,7 @@ from enum import Enum
 import numpy as np
 import time
 import utils
-from utils import IterationResult
+from utils import IterationResult, plot_list_to_image
 import gpustat
 
 PROCESS_NAME = "videc-benchmark"
@@ -101,7 +101,7 @@ class NvDecoder:
         return self.decode_frame_builtin(verbose)
 
     # Decode all available video frames and write them to output file.
-    def decode(self, frames_to_decode=-1, verbose=False, dump_frames=True, current_iteration=1) -> IterationResult:
+    def decode(self, frames_to_decode=-1, verbose=False, dump_frames=True, with_plot=False) -> IterationResult:
         frame_decode_record = []
         cpu_util_record = []
         mem_util_record = []
@@ -146,8 +146,17 @@ class NvDecoder:
             gpu_util_record.append(gpu_util)
             # gpu_mem_util_record.append(gpu_mem_util)
 
-        utils.plot_list_to_image(
-            cpu_util_record, 'benchmark-results/plot/cpu/nvcuvid-cpu-{}.png'.format(current_iteration))
+        if with_plot:
+            plot_list_to_image(
+                frame_decode_record, 'benchmark-results/plot/fpt/nvdec.png')
+            plot_list_to_image(
+                cpu_util_record, 'benchmark-results/plot/cpu/nvdec.png')
+            plot_list_to_image(
+                mem_util_record, 'benchmark-results/plot/mem/nvdec.png')
+            plot_list_to_image(
+                gpu_util_record, 'benchmark-results/plot/gpu/nvdec.png')
+            plot_list_to_image(
+                gpu_mem_util_record, 'benchmark-results/plot/gpu-mem/nvdec.png')
 
         return {
             "processing_time": frame_decode_record,

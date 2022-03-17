@@ -21,14 +21,14 @@ PROCESS_PID = 0
 setproctitle.setproctitle(PROCESS_NAME)
 
 
-def measure_decode_with_nvdec(gpu_id: int, file_to_decode: str, current_iteration: int) -> IterationResult:
+def measure_decode_with_nvdec(gpu_id: int, file_to_decode: str, with_plot=False) -> IterationResult:
     dec = NvDecoder(gpu_id, file_to_decode)
     decode_result = dec.decode(
-        dump_frames=False, current_iteration=current_iteration)
+        dump_frames=False, with_plot=with_plot)
     return decode_result
 
 
-def measure_decode_with_pyav(file_to_decode: str, current_iteration: int) -> IterationResult:
+def measure_decode_with_pyav(file_to_decode: str, with_plot=False) -> IterationResult:
     frame_decode_record = []
     cpu_util_record = []
     mem_util_record = []
@@ -71,8 +71,17 @@ def measure_decode_with_pyav(file_to_decode: str, current_iteration: int) -> Ite
         mem_util_record.append(mem_util)
         gpu_util_record.append(gpu_util)
 
-    plot_list_to_image(
-        cpu_util_record, 'benchmark-results/plot/cpu/pyav-cpu-{}.png'.format(current_iteration))
+    if with_plot:
+        plot_list_to_image(
+            frame_decode_record, 'benchmark-results/plot/fpt/pyav.png')
+        plot_list_to_image(
+            cpu_util_record, 'benchmark-results/plot/cpu/pyav.png')
+        plot_list_to_image(
+            mem_util_record, 'benchmark-results/plot/mem/pyav.png')
+        plot_list_to_image(
+            gpu_util_record, 'benchmark-results/plot/gpu/pyav.png')
+        plot_list_to_image(
+            gpu_mem_util_record, 'benchmark-results/plot/gpu-mem/pyav.png')
 
     return {
         "processing_time": frame_decode_record,
@@ -83,7 +92,7 @@ def measure_decode_with_pyav(file_to_decode: str, current_iteration: int) -> Ite
     }
 
 
-def measure_decode_with_opencv(file_to_decode: str, current_iteration: int) -> IterationResult:
+def measure_decode_with_opencv(file_to_decode: str, with_plot=False) -> IterationResult:
     frame_decode_record = []
     cpu_util_record = []
     mem_util_record = []
@@ -128,8 +137,17 @@ def measure_decode_with_opencv(file_to_decode: str, current_iteration: int) -> I
 
     video.release()
 
-    plot_list_to_image(
-        cpu_util_record, 'benchmark-results/plot/cpu/opencv-cpu-{}.png'.format(current_iteration))
+    if with_plot:
+        plot_list_to_image(
+            frame_decode_record, 'benchmark-results/plot/fpt/opencv.png')
+        plot_list_to_image(
+            cpu_util_record, 'benchmark-results/plot/cpu/opencv.png')
+        plot_list_to_image(
+            mem_util_record, 'benchmark-results/plot/mem/opencv.png')
+        plot_list_to_image(
+            gpu_util_record, 'benchmark-results/plot/gpu/opencv.png')
+        plot_list_to_image(
+            gpu_mem_util_record, 'benchmark-results/plot/gpu-mem/opencv.png')
 
     return {
         "processing_time": frame_decode_record,
@@ -181,20 +199,20 @@ if __name__ == "__main__":
 
     print("Running benchmark...")
 
-    nvcuvid_result = measure_decode_with_nvdec(
-        gpu_id, file_to_decode, nth_iteration)
-    store_benchmark_summary(nvcuvid_result, nvdec_benchmark_results)
+    nvdec_result = measure_decode_with_nvdec(
+        gpu_id, file_to_decode, with_plot=True)
+    store_benchmark_summary(nvdec_result, nvdec_benchmark_results)
 
     time.sleep(10)
 
     pyav_result = measure_decode_with_pyav(
-        file_to_decode, nth_iteration)
+        file_to_decode, with_plot=True)
     store_benchmark_summary(pyav_result, pyav_benchmark_results)
 
     time.sleep(10)
 
     opencv_result = measure_decode_with_opencv(
-        file_to_decode, nth_iteration)
+        file_to_decode, with_plot=True)
     store_benchmark_summary(opencv_result, opencv_benchmark_results)
 
     results_table = {
@@ -225,10 +243,11 @@ if __name__ == "__main__":
         ],
     }
 
-    result_markdown_path = '{}/benchmark-results/results.md'.format(
+    result_markdown_path = '{}/benchmark-results/report.md'.format(
         os.getcwd())
     result_md = open(result_markdown_path, 'w')
 
+    result_md.write("# Benchmark Report\n")
     result_md.write("<table>")
     result_md.write("""
     <tr>
@@ -263,6 +282,47 @@ if __name__ == "__main__":
     </tr>""".format(*row))
 
     result_md.write("\n</table>\n")
+    result_md.write("\n# Plots\n")
+    result_md.write("## Frame Processing Time")
+    result_md.write("""
+### NVDEC
+![](./plot/fpt/nvdec.png)
+### PyAV
+![](./plot/fpt/pyav.png)
+### OpenCV
+![](./plot/fpt/opencv.png)\n""")
+    result_md.write("## CPU Utilization")
+    result_md.write("""
+### NVDEC
+![](./plot/cpu/nvdec.png)
+### PyAV
+![](./plot/cpu/pyav.png)
+### OpenCV
+![](./plot/cpu/opencv.png)\n""")
+    result_md.write("## Memory Utilization")
+    result_md.write("""
+### NVDEC
+![](./plot/mem/nvdec.png)
+### PyAV
+![](./plot/mem/pyav.png)
+### OpenCV
+![](./plot/mem/opencv.png)\n""")
+    result_md.write("## GPU Utilization")
+    result_md.write("""
+### NVDEC
+![](./plot/gpu/nvdec.png)
+### PyAV
+![](./plot/gpu/pyav.png)
+### OpenCV
+![](./plot/gpu/opencv.png)\n""")
+    result_md.write("## GPU Memory Utilization")
+    result_md.write("""
+### NVDEC
+![](./plot/gpu-mem/nvdec.png)
+### PyAV
+![](./plot/gpu-mem/pyav.png)
+### OpenCV
+![](./plot/gpu-mem/opencv.png)\n""")
 
     print("Benchmark result written to: {}".format(result_markdown_path))
 

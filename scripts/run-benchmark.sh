@@ -11,5 +11,9 @@ while getopts ":bv" flags; do
   esac
 done
 
+mkdir -p $(pwd)/benchmark-results/plot/fpt
 mkdir -p $(pwd)/benchmark-results/plot/cpu
+mkdir -p $(pwd)/benchmark-results/plot/mem
+mkdir -p $(pwd)/benchmark-results/plot/gpu
+mkdir -p $(pwd)/benchmark-results/plot/gpu-mem
 python3 ./install/bin/main.py 0 ./videos/45-seconds.mkv ./benchmark-results/out.native
