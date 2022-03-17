@@ -1,11 +1,18 @@
 # Video Decoding Benchmark
+A program to benchmark the performance of NVIDIA NVDEC (through VideoProcessingFramework), PyAV, and OpenCV (without hardware acceleration) on video decoding operation. The following metrics are observed:
+1. Frame Processing Time (the time it takes to decode 1 frame)
+2. CPU Utilization Across All Cores
+3. Memory Utilization
+4. GPU Utilization
+5. GPU Memory Utilization
+
 ## Prerequisites
 - Python 3 (I use v3.8.10)
 - GCC (I use v9.3.0)
 - Linux (I use Ubuntu v18.04)
 - NVIDIA Cuda Toolkit (I use v11.1)
 - NVIDIA Video Codec SDK (I use v11.1.5)
-- FFMPEG (I use v4.2.4)
+- FFMPEG
 
 ## Running the benchmark
 1. Clone the repo
@@ -28,3 +35,4 @@ As for the 5 new directories that are created at the project root are:
   - `install` contains the runnable Python program with a PyNvCodec build
   - `build` which is the CMake build directory
   - `benchmark-results` which is used to save the benchmark results from plots to markdown report
+  
