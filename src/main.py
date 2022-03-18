@@ -11,6 +11,7 @@ import gpustat
 from utils import s_to_ms, plot_list_to_image, store_benchmark_summary, BenchmarkResult, IterationResult
 import utils
 import os
+import csv
 import setproctitle
 
 nvidia_smi.nvmlInit()
@@ -41,7 +42,6 @@ def measure_decode_with_pyav(file_to_decode: str, with_plot=False) -> IterationR
             continue
         PROCESS_PID = p.pid
 
-    # gpu_handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
     psutil_handle = psutil.Process(PROCESS_PID)
 
     av_input = av.open(file_to_decode)
@@ -56,12 +56,10 @@ def measure_decode_with_pyav(file_to_decode: str, with_plot=False) -> IterationR
         packet.decode()
         end_counter = time.perf_counter()
 
-        processing_time = s_to_ms(end_counter - start_counter)
+        processing_time = round(s_to_ms(end_counter - start_counter), 2)
         cpu_util = psutil.cpu_percent()
-        mem_util = utils.b_to_mb(psutil_handle.memory_info().rss)
+        mem_util = round(utils.b_to_mb(psutil_handle.memory_info().rss), 2)
         gpu_util = gpu[0].utilization
-        gpu_mem_util = gpu[0].memory_used
-        # gpu_util = nvidia_smi.nvmlDeviceGetUtilizationRates(gpu_handle)
 
         for process in gpu_processes:
             gpu_mem_util_record.append(process["gpu_memory_usage"])
@@ -70,6 +68,23 @@ def measure_decode_with_pyav(file_to_decode: str, with_plot=False) -> IterationR
         cpu_util_record.append(cpu_util)
         mem_util_record.append(mem_util)
         gpu_util_record.append(gpu_util)
+
+    # Dump records to CSV files
+    with open("benchmark-results/csv/fpt/pyav.csv", 'w') as file_csv:
+        writer = csv.writer(file_csv)
+        writer.writerow(frame_decode_record)
+    with open("benchmark-results/csv/cpu/pyav.csv", 'w') as file_csv:
+        writer = csv.writer(file_csv)
+        writer.writerow(cpu_util_record)
+    with open("benchmark-results/csv/mem/pyav.csv", 'w') as file_csv:
+        writer = csv.writer(file_csv)
+        writer.writerow(mem_util_record)
+    with open("benchmark-results/csv/gpu/pyav.csv", 'w') as file_csv:
+        writer = csv.writer(file_csv)
+        writer.writerow(gpu_util_record)
+    with open("benchmark-results/csv/gpu-mem/pyav.csv", 'w') as file_csv:
+        writer = csv.writer(file_csv)
+        writer.writerow(gpu_mem_util_record)
 
     if with_plot:
         plot_list_to_image(
@@ -120,12 +135,10 @@ def measure_decode_with_opencv(file_to_decode: str, with_plot=False) -> Iteratio
             break
         end_counter = time.perf_counter()
 
-        processing_time = s_to_ms(end_counter - start_counter)
+        processing_time = round(s_to_ms(end_counter - start_counter), 2)
         cpu_util = psutil.cpu_percent()
-        mem_util = utils.b_to_mb(psutil_handle.memory_info().rss)
+        mem_util = round(utils.b_to_mb(psutil_handle.memory_info().rss), 2)
         gpu_util = gpu[0].utilization
-        gpu_mem_util = gpu[0].memory_used
-        # gpu_util = nvidia_smi.nvmlDeviceGetUtilizationRates(gpu_handle)
 
         for process in gpu_processes:
             gpu_mem_util_record.append(process["gpu_memory_usage"])
@@ -136,6 +149,23 @@ def measure_decode_with_opencv(file_to_decode: str, with_plot=False) -> Iteratio
         gpu_util_record.append(gpu_util)
 
     video.release()
+
+    # Dump records to CSV files
+    with open("benchmark-results/csv/fpt/opencv.csv", 'w') as file_csv:
+        writer = csv.writer(file_csv)
+        writer.writerow(frame_decode_record)
+    with open("benchmark-results/csv/cpu/opencv.csv", 'w') as file_csv:
+        writer = csv.writer(file_csv)
+        writer.writerow(cpu_util_record)
+    with open("benchmark-results/csv/mem/opencv.csv", 'w') as file_csv:
+        writer = csv.writer(file_csv)
+        writer.writerow(mem_util_record)
+    with open("benchmark-results/csv/gpu/opencv.csv", 'w') as file_csv:
+        writer = csv.writer(file_csv)
+        writer.writerow(gpu_util_record)
+    with open("benchmark-results/csv/gpu-mem/opencv.csv", 'w') as file_csv:
+        writer = csv.writer(file_csv)
+        writer.writerow(gpu_mem_util_record)
 
     if with_plot:
         plot_list_to_image(

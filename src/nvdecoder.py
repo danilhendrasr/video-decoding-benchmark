@@ -7,6 +7,7 @@ import time
 import utils
 from utils import IterationResult, plot_list_to_image
 import gpustat
+import csv
 
 PROCESS_NAME = "videc-benchmark"
 PROCESS_PID = 0
@@ -131,12 +132,12 @@ class NvDecoder:
                 frame_count += 1
             end_counter = time.perf_counter()
 
-            processing_time = utils.s_to_ms(end_counter - start_counter)
+            processing_time = round(utils.s_to_ms(
+                end_counter - start_counter), 2)
             cpu_util = psutil.cpu_percent()
-            mem_util = utils.b_to_mb(psutil_handle.memory_info().rss)
-            # gpu_util = nvidia_smi.nvmlDeviceGetUtilizationRates(gpu_handle)
+            mem_util = round(utils.b_to_mb(psutil_handle.memory_info().rss), 2)
             gpu_util = gpu[0].utilization
-            gpu_mem_util = gpu[0].memory_used
+
             for process in gpu_processes:
                 gpu_mem_util_record.append(process["gpu_memory_usage"])
 
@@ -144,7 +145,23 @@ class NvDecoder:
             cpu_util_record.append(cpu_util)
             mem_util_record.append(mem_util)
             gpu_util_record.append(gpu_util)
-            # gpu_mem_util_record.append(gpu_mem_util)
+
+            # Dump records to CSV files
+            with open("benchmark-results/csv/fpt/nvdec.csv", 'w') as file_csv:
+                writer = csv.writer(file_csv)
+                writer.writerow(frame_decode_record)
+            with open("benchmark-results/csv/cpu/nvdec.csv", 'w') as file_csv:
+                writer = csv.writer(file_csv)
+                writer.writerow(cpu_util_record)
+            with open("benchmark-results/csv/mem/nvdec.csv", 'w') as file_csv:
+                writer = csv.writer(file_csv)
+                writer.writerow(mem_util_record)
+            with open("benchmark-results/csv/gpu/nvdec.csv", 'w') as file_csv:
+                writer = csv.writer(file_csv)
+                writer.writerow(gpu_util_record)
+            with open("benchmark-results/csv/gpu-mem/nvdec.csv", 'w') as file_csv:
+                writer = csv.writer(file_csv)
+                writer.writerow(gpu_mem_util_record)
 
         if with_plot:
             plot_list_to_image(
