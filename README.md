@@ -34,5 +34,5 @@ As for the 5 new directories that are created at the project root are:
   - `videc_benchmark_env` the Python virtual environment
   - `install` contains the runnable Python program with a PyNvCodec build
   - `build` which is the CMake build directory
-  - `benchmark-results` which is used to save the benchmark results from plots to markdown report
+  - `benchmark-results` which is used to save the benchmark results, from plots, csv dumps, and the markdown report
   
