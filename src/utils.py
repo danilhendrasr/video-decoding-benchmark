@@ -13,7 +13,7 @@ class SummaryObject(TypedDict):
 
 
 class IterationResult(TypedDict):
-    processing_time: "list[float]"
+    fpt: "list[float]"
     cpu: "list[float]"
     mem: "list[float]"
     gpu: "list[float]"
