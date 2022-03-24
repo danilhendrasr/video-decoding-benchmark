@@ -53,13 +53,13 @@ class _Tool:
         for key, value in self.records.items():
             sorted_value = sorted(value)
             dict_result[key] = {
-                "avg": round(avg(sorted_value), 2),
-                "min": round(min(sorted_value), 2),
-                "max": round(max(sorted_value), 2),
-                "q1": round(percentile(sorted_value, 25), 2),
-                "q2": round(percentile(sorted_value, 50), 2),
-                "q3": round(percentile(sorted_value, 75), 2),
-                "stdev": round(stdev(sorted_value), 2),
+                "avg": round(avg(sorted_value), 2) if len(value) != 0 else 0,
+                "min": round(min(sorted_value), 2) if len(value) != 0 else 0,
+                "max": round(max(sorted_value), 2) if len(value) != 0 else 0,
+                "q1": round(percentile(sorted_value, 25), 2) if len(value) != 0 else 0,
+                "q2": round(percentile(sorted_value, 50), 2) if len(value) != 0 else 0,
+                "q3": round(percentile(sorted_value, 75), 2) if len(value) != 0 else 0,
+                "stdev": round(stdev(sorted_value), 2) if len(value) != 0 else 0,
             }
 
         return dict_result
@@ -73,31 +73,39 @@ class PyAV(_Tool):
     def __init__(self, file_to_decode: str, with_plot=False, process_name="python3") -> None:
         super().__init__(file_to_decode, with_plot, process_name)
 
-    def decode(self):
+    def decode(self, warmup_iteration=0):
         av_input = av.open(self.file_to_decode)
+        iteration_count = 1
         for packet in av_input.demux():
             if packet.size == 0:
                 continue
 
             gpu = gpustat.core.GPUStatCollection.new_query()
-            gpu_processes = filter(lambda x: self.process_name.match(
-                x['command']), gpu[0].processes)
             start_counter = time.perf_counter()
             packet.decode()
             end_counter = time.perf_counter()
+            gpu_processes = list(filter(lambda x: self.process_name.match(
+                x['command']), gpu[0].processes))
 
             processing_time = round(s_to_ms(end_counter - start_counter), 2)
             cpu_util = psutil.cpu_percent()
             mem_util = round(b_to_mb(self._psutil_handle.memory_info().rss), 2)
             gpu_util = gpu[0].utilization
 
-            for process in gpu_processes:
-                self.records["gpu_mem"].append(process["gpu_memory_usage"])
+            if iteration_count > warmup_iteration:
+                if len(gpu_processes) > 0:
+                    for process in gpu_processes:
+                        self.records["gpu_mem"].append(
+                            process["gpu_memory_usage"])
+                else:
+                    self.records["gpu_mem"].append(0)
 
-            self.records["fpt"].append(processing_time)
-            self.records["cpu"].append(cpu_util)
-            self.records["mem"].append(mem_util)
-            self.records["gpu"].append(gpu_util)
+                self.records["fpt"].append(processing_time)
+                self.records["cpu"].append(cpu_util)
+                self.records["mem"].append(mem_util)
+                self.records["gpu"].append(gpu_util)
+
+            iteration_count += 1
 
         self.dump_all_records_to_csv(file_name="pyav")
 
@@ -109,12 +117,13 @@ class OpenCV(_Tool):
     def __init__(self, file_to_decode: str, with_plot=False, process_name="python3") -> None:
         super().__init__(file_to_decode, with_plot, process_name)
 
-    def decode(self):
+    def decode(self, warmup_iteration=0):
         video = cv2.VideoCapture(self.file_to_decode)
+        iteration_count = 1
         while video.isOpened():
             gpu = gpustat.core.GPUStatCollection.new_query()
-            gpu_processes = filter(lambda x: self.process_name.match(
-                x['command']), gpu[0].processes)
+            gpu_processes = list(filter(lambda x: self.process_name.match(
+                x['command']), gpu[0].processes))
 
             start_counter = time.perf_counter()
             ret, _ = video.read()
@@ -127,13 +136,20 @@ class OpenCV(_Tool):
             mem_util = round(b_to_mb(self._psutil_handle.memory_info().rss), 2)
             gpu_util = gpu[0].utilization
 
-            for process in gpu_processes:
-                self.records["gpu_mem"].append(process["gpu_memory_usage"])
+            if iteration_count > warmup_iteration:
+                if len(gpu_processes) > 0:
+                    for process in gpu_processes:
+                        self.records["gpu_mem"].append(
+                            process["gpu_memory_usage"])
+                else:
+                    self.records["gpu_mem"].append(0)
 
-            self.records["fpt"].append(processing_time)
-            self.records["cpu"].append(cpu_util)
-            self.records["mem"].append(mem_util)
-            self.records["gpu"].append(gpu_util)
+                self.records["fpt"].append(processing_time)
+                self.records["cpu"].append(cpu_util)
+                self.records["mem"].append(mem_util)
+                self.records["gpu"].append(gpu_util)
+
+            iteration_count += 1
 
         video.release()
 
@@ -186,31 +202,40 @@ class NVDec(_Tool):
         return status
 
     # Decode all available video frames and write them to output file.
-    def decode(self) -> IterationResult:
+    def decode(self, warmup_iteration=0) -> IterationResult:
+        iteration_count = 1
+
         # Main decoding cycle
         while True:
-            gpu = gpustat.core.GPUStatCollection.new_query()
-            gpu_processes = filter(lambda x: self.process_name.match(
-                x['command']), gpu[0].processes)
 
             start_counter = time.perf_counter()
             status = self.decode_frame()
             if status == DecodeStatus.DEC_ERR:
                 break
             end_counter = time.perf_counter()
+            gpu = gpustat.core.GPUStatCollection.new_query()
+            gpu_processes = list(filter(lambda x: self.process_name.match(
+                x['command']), gpu[0].processes))
 
             processing_time = round(s_to_ms(end_counter - start_counter), 2)
             cpu_util = psutil.cpu_percent()
             mem_util = round(b_to_mb(self._psutil_handle.memory_info().rss), 2)
             gpu_util = gpu[0].utilization
 
-            for process in gpu_processes:
-                self.records["gpu_mem"].append(process["gpu_memory_usage"])
+            if iteration_count > warmup_iteration:
+                if len(gpu_processes) > 0:
+                    for process in gpu_processes:
+                        self.records["gpu_mem"].append(
+                            process["gpu_memory_usage"])
+                else:
+                    self.records["gpu_mem"].append(0)
 
-            self.records["fpt"].append(processing_time)
-            self.records["cpu"].append(cpu_util)
-            self.records["mem"].append(mem_util)
-            self.records["gpu"].append(gpu_util)
+                self.records["fpt"].append(processing_time)
+                self.records["cpu"].append(cpu_util)
+                self.records["mem"].append(mem_util)
+                self.records["gpu"].append(gpu_util)
+
+            iteration_count += 1
 
         self.dump_all_records_to_csv(file_name="nvdec")
 

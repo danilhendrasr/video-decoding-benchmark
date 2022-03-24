@@ -28,4 +28,4 @@ mkdir -p $(pwd)/benchmark-results/csv/mem
 mkdir -p $(pwd)/benchmark-results/csv/gpu
 mkdir -p $(pwd)/benchmark-results/csv/gpu_mem
 
-python3 ./install/bin/main.py ./videos/45-seconds.mkv $warmup_iteration
+python3 ./install/bin/main.py ./videos/5-minutes.mp4 $warmup_iteration

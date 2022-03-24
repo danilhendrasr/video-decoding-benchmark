@@ -21,41 +21,23 @@ if __name__ == "__main__":
     file_to_decode = sys.argv[1]
     warmup_iteration = int(sys.argv[2])
 
-    if warmup_iteration > 0:
-        print("\nRunning warmup...")
-        with tqdm(range(warmup_iteration)) as t:
-            for i in t:
-                nth_iteration = i + 1
-                tqdm.write(
-                    "--- Iteration {}/{} ---".format(i+1, warmup_iteration))
-
-                t.set_description("Running NVDEC")
-                NVDec(file_to_decode, True, PROCESS_NAME).decode()
-                t.set_description("NVDEC finished")
-
-                t.set_description("Running PyAV")
-                PyAV(file_to_decode, True, PROCESS_NAME).decode()
-                t.set_description("PyAV finished")
-
-                t.set_description("Running OpenCV")
-                OpenCV(file_to_decode, True, PROCESS_NAME).decode()
-                t.set_description("OpenCV finished")
-
-                t.set_description("Warmup finished")
-
     print("\nRunning benchmark...")
 
-    nvdec = NVDec(file_to_decode, True, PROCESS_NAME)
-    nvdec.decode()
-    nvdec_summary = nvdec.summarize_records()
-
     pyav = PyAV(file_to_decode, True, PROCESS_NAME)
-    pyav.decode()
+    pyav.decode(warmup_iteration=warmup_iteration)
     pyav_summary = pyav.summarize_records()
 
+    time.sleep(5)
+
     opencv = OpenCV(file_to_decode, True, PROCESS_NAME)
-    opencv.decode()
+    opencv.decode(warmup_iteration=warmup_iteration)
     opencv_summary = opencv.summarize_records()
+
+    time.sleep(5)
+
+    nvdec = NVDec(file_to_decode, True, PROCESS_NAME)
+    nvdec.decode(warmup_iteration=warmup_iteration)
+    nvdec_summary = nvdec.summarize_records()
 
     results_table = {
         "Frame Processing Time (ms)": [
@@ -160,11 +142,11 @@ if __name__ == "__main__":
     result_md.write("## GPU Memory Utilization")
     result_md.write("""
 ### NVDEC
-![](./plot/gpu-mem/nvdec.png)
+![](./plot/gpu_mem/nvdec.png)
 ### PyAV
-![](./plot/gpu-mem/pyav.png)
+![](./plot/gpu_mem/pyav.png)
 ### OpenCV
-![](./plot/gpu-mem/opencv.png)\n""")
+![](./plot/gpu_mem/opencv.png)\n""")
 
     print("\nBenchmark result written to: {}".format(result_markdown_path))
 
