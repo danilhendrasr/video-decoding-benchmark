@@ -1,5 +1,5 @@
 build/
 install/
 benchmark-results/
-videos/
 *_env/
+*.zip
