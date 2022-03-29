@@ -7,32 +7,29 @@ A program to benchmark the performance of NVIDIA NVDEC (through VideoProcessingF
 5. GPU Memory Utilization
 
 ## Prerequisites
-- Python 3 (I use v3.8.10)
-- GCC (I use v9.3.0)
-- Linux (I use Ubuntu v18.04)
-- NVIDIA Cuda Toolkit (I use v11.1)
-- NVIDIA Video Codec SDK (I use v11.1.5)
-- FFMPEG
+- Docker
+- NVIDIA Video Codec SDK
 
-## Running the benchmark
+## Running the Benchmark
 1. Clone the repo
-2. Make sure you've already set `PATH_TO_SDK` and `CUDACXX` environment variable.
-  - `PATH_TO_SDK` is the path to NVIDIA Video Codec SDK
-  - `CUDACXX` is the path to NVIDIA CUDA Toolkit's `nvcc` binary
-3. Give execute permission for scripts inside the `scripts` directory:
-```bash
-sudo chmod u+x scripts/*
-```
-4. Run the `run-benchmark.sh`, `fetch-videos.sh`, and `build.sh` scripts by typing the following command
-```bash
-scripts/run-benchmark.sh -bv
-```
-The above command will build the project, fetch a sample video from a source, create 5 new directories at the project root, and then run the benchmark.
-
-As for the 5 new directories that are created at the project root are:
-  - `videos` contains the video that you can use as a sample to run the benchmark on
-  - `videc_benchmark_env` the Python virtual environment
-  - `install` contains the runnable Python program with a PyNvCodec build
-  - `build` which is the CMake build directory
-  - `benchmark-results` which is used to save the benchmark results, from plots, csv dumps, and the markdown report
+2. Build the docker image
+   ```bash
+   docker build -t videc-benchmark .
+   ```
+3. Run the docker image
+   ```bash
+   docker run --gpus all -it videc-benchmark bash
+   ```
+4. Enter the following command inside the container's terminal
+   ```bash
+   python3 ./install/bin/main.py ./videos/5-minutes.mp4 $warmup_iteration
+   ```
+   Notes:
+   - You should replace `$warmup_iteration` with any integer. The program will use
+    the first `$warmup_iteration` amount of frames as warmup during the benchmark.
+   - The `./videos/5-minutes.mp4` part is the path to input file. You can look into
+    the `videos` directory to see files that are available to be used as input.
+5. The benchmark result will get written to the `benchmark-results` directory 
+  inside the container, you can use [docker cp](https://stackoverflow.com/a/22050116)
+  to copy it to your machine.
   
