@@ -12,10 +12,14 @@ A program to benchmark the performance of NVIDIA NVDEC (through VideoProcessingF
 
 ## Running the Benchmark
 1. Clone the repo
-2. Build the docker image
+2. Download [NVIDIA Video Codec SDK](https://developer.nvidia.com/nvidia-video-codec-sdk/download) and place the zip file in the root directory of this project.
+3. Build the docker image
    ```bash
    docker build -t videc-benchmark .
    ```
+   2 build args are available:
+   - `PROJECT_PATH`, to control where in the image you want this project to be copied to, this arg defaults to `/videc-benchmark`.
+   - `VIDEO_CODEC_SDK_VERSION`, to specify which version of NVIDIA Video Codec SDK that you've downloaded from step 2, this arg defaults to 11.1.5.
 3. Run the docker image
    ```bash
    docker run --gpus all -it videc-benchmark bash
