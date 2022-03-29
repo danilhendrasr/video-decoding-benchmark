@@ -2,4 +2,3 @@ build
 install
 benchmark-results
 videc_benchmark_env
-*.zip
