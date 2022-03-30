@@ -22,16 +22,16 @@ A program to benchmark the performance of NVIDIA NVDEC (through VideoProcessingF
    - `VIDEO_CODEC_SDK_VERSION`, to specify which version of NVIDIA Video Codec SDK that you've downloaded from step 2, this arg defaults to 11.1.5.
 3. Run the docker image
    ```bash
-   docker run --gpus all -it videc-benchmark bash
+   docker run --gpus all -it --pid host videc-benchmark bash
    ```
 4. Enter the following command inside the container's terminal
    ```bash
-   python3 ./install/bin/main.py ./videos/5-minutes.mp4 $warmup_iteration
+   python3 ./install/bin/main.py ./videos/45-seconds.mp4 $x
    ```
    Notes:
-   - You should replace `$warmup_iteration` with any integer. The program will use
-    the first `$warmup_iteration` amount of frames as warmup during the benchmark.
-   - The `./videos/5-minutes.mp4` part is the path to input file. You can look into
+   - You should replace `$x` with an integer. The program will use
+    the first `$x` frames as warmup during the benchmark, meaning it won't collect any data during the processing of the first `$x` frames.
+   - The `./videos/45-seconds.mp4` part is the path to input file. You can look into
     the `videos` directory to see files that are available to be used as input.
 5. The benchmark result will get written to the `benchmark-results` directory 
   inside the container, you can use [docker cp](https://stackoverflow.com/a/22050116)
