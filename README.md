@@ -7,8 +7,10 @@ A program to benchmark the performance of NVIDIA NVDEC (through VideoProcessingF
 5. GPU Memory Utilization
 
 ## Prerequisites
-- Docker
-- NVIDIA Video Codec SDK
+- Machine with [supported NVIDIA GPU](https://developer.nvidia.com/video-encode-and-decode-gpu-support-matrix-new#Encoder);
+- NVIDIA Driver;
+- Docker;
+- NVIDIA Video Codec SDK.
 
 ## Running the Benchmark
 1. Clone the repo
