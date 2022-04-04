@@ -26,7 +26,7 @@ A program to benchmark the performance of NVIDIA NVDEC (through VideoProcessingF
    ```
 4. Enter the following command inside the container's terminal
    ```bash
-   python3 ./install/bin/main.py ./videos/45-seconds.mp4 $x
+   scripts/run-benchmark.sh -i ./videos/45-seconds.mp4 -w $x
    ```
    Notes:
    - You should replace `$x` with an integer. The program will use
