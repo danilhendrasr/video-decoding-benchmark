@@ -28,6 +28,9 @@ WORKDIR $PROJECT_PATH
 COPY requirements.txt .
 
 RUN pip3 install --upgrade pip && \
+  pip3 install virtualenv && \
+  virtualenv videc_benchmark_env && \
+  bash -c "source videc_benchmark_env/bin/activate" && \
   pip3 install --upgrade cython && \
   pip3 install -r requirements.txt
 
@@ -49,17 +52,19 @@ WORKDIR $PROJECT_PATH
 COPY . .
 
 ENV PYTHONPATH=$PROJECT_PATH/install/bin:$PYTHONPATH
+ENV PATH_TO_SDK /opt/nvidia/video-sdk/Video_Codec_SDK_${VIDEOSDK_VERSION}
+ENV CMAKE_INSTALL_PREFIX "$PROJECT_PATH/install"
 
 RUN bash -c 'mkdir -p benchmark-results/{plot,csv}/{fpt,cpu,mem,gpu,gpu_mem}' && \
+  mkdir benchmark-results/individual_summary && \
   bash -c 'mkdir -p {install,build}' && cd build && \
-  export PATH_TO_SDK=/opt/nvidia/video-sdk/Video_Codec_SDK_${VIDEOSDK_VERSION} && \
   cmake .. \
   -DFFMPEG_DIR:PATH="/usr/bin" \
   -DFFMPEG_INCLUDE_DIR:PATH="/usr/include/x86_64-linux-gnu" \
   -DFFMPEG_LIB_DIR:PATH="/usr/lib/x86_64-linux-gnu" \
   -DVIDEO_CODEC_SDK_DIR:PATH="$PATH_TO_SDK" \
   -DGENERATE_PYTHON_BINDINGS:BOOL="1" \
-  -DCMAKE_INSTALL_PREFIX:PATH="$PROJECT_PATH/install" \
+  -DCMAKE_INSTALL_PREFIX:PATH="$CMAKE_INSTALL_PREFIX" \
   -DPYTHON_EXECUTABLE:FILEPATH="/usr/bin/python3.8" \
   -DPYTHON_INCLUDE_DIR:PATH="/usr/include/python3.8"  \
   -DPYTHON_LIBRARY:FILEPATH="/usr/lib/python3.8/config-3.8-x86_64-linux-gnu/libpython3.8.so" \

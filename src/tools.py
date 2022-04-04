@@ -64,6 +64,13 @@ class _Tool:
 
         return dict_result
 
+    def summary_to_csv(self, file_name: str, dict_summary):
+        with open('benchmark-results/individual_summary/{}.csv'.format(file_name), 'w') as csv_file:
+            csv_writer = csv.writer(csv_file, delimiter=',',
+                                    quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            for _, value in dict_summary.items():
+                csv_writer.writerow([*value.values()])
+
     @abstractmethod
     def decode(self):
         pass
