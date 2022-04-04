@@ -33,7 +33,8 @@ A program to benchmark the performance of NVIDIA NVDEC (through VideoProcessingF
     the first `$x` frames as warmup during the benchmark, meaning it won't collect any data during the processing of the first `$x` frames.
    - The `./videos/45-seconds.mp4` part is the path to input file. You can look into
     the `videos` directory to see files that are available to be used as input.
-5. The benchmark result will get written to the `benchmark-results` directory 
-  inside the container, you can use [docker cp](https://stackoverflow.com/a/22050116)
-  to copy it to your machine.
+5. Copy the benchmark result from the container to the host
+   ```bash
+   docker cp <container ID>:/videc-benchmark/benchmark-results ./<directory name>
+   ```
   
