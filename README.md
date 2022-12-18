@@ -41,4 +41,6 @@ A program to benchmark the performance of NVIDIA NVDEC (through VideoProcessingF
    ```bash
    docker cp <container ID>:/videc-benchmark/benchmark-results ./<directory name>
    ```
-  
+
+## Existing Report
+I've done the benchmark previously and I've compiled a report document. Click [here](https://docs.google.com/document/d/1pbxKudDUY9edn-ZXURNedphEU2FucvEo6VvWe6gL-XA/edit?usp=share_link) if you need to read it.
